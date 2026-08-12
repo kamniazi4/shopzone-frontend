@@ -8,6 +8,11 @@
   padding: 0;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 :root {
   --navy-dark: #131921;
   --navy-header: #232f3e;
@@ -320,24 +325,31 @@ button {
 /* ===================== PRODUCT DETAILS ===================== */
 .product-details-page {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 420px 1fr;
   gap: 32px;
   background: var(--bg-white);
   padding: 24px;
   border-radius: 8px;
   border: 1px solid var(--border-gray);
+  align-items: start;
 }
 @media (max-width: 800px) {
   .product-details-page { grid-template-columns: 1fr; }
 }
 
+.product-images {
+  width: 100%;
+}
+
 .product-images img {
   width: 100%;
-  max-height: 400px;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
+  background: #f7f7f7;
   margin-bottom: 8px;
   border: 1px solid var(--border-gray);
   border-radius: 4px;
+  padding: 12px;
 }
 
 .product-info h1 {
@@ -504,6 +516,45 @@ button {
   border-radius: 4px;
   min-width: 200px;
 }
+
+/* ===================== PAYMENT METHOD (checkout) ===================== */
+.checkout-payment-method {
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-method-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-gray);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.payment-method-option:last-child {
+  margin-bottom: 0;
+}
+
+.payment-method-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.payment-method-option span {
+  color: var(--text-dark);
+}
+
+.payment-method-option:hover {
+  border-color: var(--orange);
+  background: #fff9f0;
+}
+
 .checkout-summary-item {
   display: flex;
   justify-content: space-between;
@@ -1192,6 +1243,8 @@ button {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 20px;
+  min-width: 0;     
+  overflow: hidden;  
 }
 
 .recommendation-row h3 {
@@ -1205,9 +1258,11 @@ button {
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 10px;  
   scrollbar-width: thin;
+  min-width: 0;     
 }
+
 .recommendation-row-track::-webkit-scrollbar {
   height: 6px;
 }
@@ -1384,6 +1439,8 @@ button {
   gap: 16px;
   align-items: flex-start;
   margin-bottom: 8px;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .zoom-image-wrapper {
@@ -1430,6 +1487,7 @@ button {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 10;
   pointer-events: none;
+  max-width: calc(100vw - 40px);   /* <-- YE NAYI LINE */
 }
 
 @media (max-width: 900px) {
