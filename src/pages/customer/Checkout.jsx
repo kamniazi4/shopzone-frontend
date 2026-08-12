@@ -1,5 +1,6 @@
 // Checkout page - collects shipping address, applies coupon, places the order,
-// and completes payment through the risk-aware verification flow before Stripe
+// lets the customer pick a payment method, and completes payment through the
+// risk-aware verification flow before dispatching to the chosen gateway.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -11,8 +12,15 @@ import Button from '../../components/common/Button';
 import InputField from '../../components/forms/InputField';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import StripePaymentWrapper from '../../components/product/StripePaymentWrapper';
+import RedirectGatewayForm from '../../components/product/RedirectGatewayForm';
 import PaymentVerification from '../../components/product/PaymentVerification';
 import paymentVerificationApi from '../../api/paymentVerificationApi';
+
+const PAYMENT_METHODS = [
+  { value: 'card', label: 'Credit / Debit Card (Stripe)' },
+  { value: 'jazzcash', label: 'JazzCash' },
+  { value: 'easypaisa', label: 'EasyPaisa' },
+];
 
 function Checkout() {
   const dispatch = useAppDispatch();
@@ -25,6 +33,7 @@ function Checkout() {
 
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [couponCode, setCouponCode] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
   const [newAddress, setNewAddress] = useState({
     recipient_name: '', recipient_email: '', address_line1: '', city: '', state: '', postal_code: '', country: '', phone: '',
   });
@@ -33,6 +42,7 @@ function Checkout() {
   // Risk-aware payment flow state: idle -> initiating -> verifying (if needed) -> paying
   const [paymentPhase, setPaymentPhase] = useState('idle');
   const [clientSecret, setClientSecret] = useState(null);
+  const [redirectInfo, setRedirectInfo] = useState(null); // { actionUrl, fields } for JazzCash/EasyPaisa
   const [contactOptions, setContactOptions] = useState(null);
   const [paymentIdForVerification, setPaymentIdForVerification] = useState(null);
   const [initiateError, setInitiateError] = useState('');
@@ -50,7 +60,6 @@ function Checkout() {
     }
   }, [addresses, selectedAddressId]);
 
-  // Once an order is placed, kick off the risk-aware payment initiation flow
   useEffect(() => {
     if (lastPlacedOrder && paymentPhase === 'idle') {
       initiatePaymentFlow(lastPlacedOrder.id);
@@ -61,14 +70,13 @@ function Checkout() {
     setPaymentPhase('initiating');
     setInitiateError('');
     try {
-      const { data } = await paymentVerificationApi.initiatePayment(orderId);
+      const { data } = await paymentVerificationApi.initiatePayment(orderId, selectedPaymentMethod);
       if (data.data.requires_verification) {
         setPaymentIdForVerification(data.data.payment_id);
         setContactOptions(data.data.contact_options);
         setPaymentPhase('verifying');
       } else {
-        setClientSecret(data.data.client_secret);
-        setPaymentPhase('paying');
+        applyGatewayResponse(data.data);
       }
     } catch (err) {
       setInitiateError(err.response?.data?.message || 'Unable to start payment. Please try again.');
@@ -76,10 +84,23 @@ function Checkout() {
     }
   }
 
-  // Called once OTP verification succeeds - now safe to proceed to card entry
-  function handleOtpVerified(newClientSecret) {
-    setClientSecret(newClientSecret);
-    setPaymentPhase('paying');
+  // Routes the initiate/verify response to the right payment UI depending on gateway
+  function applyGatewayResponse(payload) {
+    if (payload.gateway === 'card' && payload.client_secret) {
+      setClientSecret(payload.client_secret);
+      setPaymentPhase('paying');
+    } else if (payload.redirect) {
+      setRedirectInfo(payload.redirect);
+      setPaymentPhase('redirecting');
+    } else {
+      setInitiateError('Unexpected response from payment gateway.');
+      setPaymentPhase('idle');
+    }
+  }
+
+  // Called once OTP verification succeeds - now safe to proceed
+  function handleOtpVerified(verifiedPayload) {
+    applyGatewayResponse(verifiedPayload);
   }
 
   function handlePaymentSuccess() {
@@ -115,8 +136,6 @@ function Checkout() {
 
   const total = subtotal - discountAmount;
 
-  // Once an order has been placed, this section handles risk check -> (optional OTP) -> Stripe payment,
-  // instead of showing the cart/summary again.
   if (lastPlacedOrder) {
     return (
       <div className="checkout-page">
@@ -143,6 +162,14 @@ function Checkout() {
               onSuccess={handlePaymentSuccess}
             />
           </section>
+        )}
+
+        {paymentPhase === 'redirecting' && redirectInfo && (
+          <RedirectGatewayForm
+            actionUrl={redirectInfo.actionUrl}
+            fields={redirectInfo.fields}
+            gatewayLabel={selectedPaymentMethod === 'jazzcash' ? 'JazzCash' : 'EasyPaisa'}
+          />
         )}
       </div>
     );
@@ -207,6 +234,21 @@ function Checkout() {
         <Button onClick={handleApplyCoupon}>Apply</Button>
         <ErrorMessage message={couponError} />
         {appliedCoupon && <p>Coupon applied: -${discountAmount.toFixed(2)}</p>}
+      </section>
+
+      <section className="checkout-payment-method">
+        <h3>Payment Method</h3>
+        {PAYMENT_METHODS.map((method) => (
+          <label key={method.value} className="payment-method-option">
+            <input
+              type="radio"
+              name="payment_method"
+              checked={selectedPaymentMethod === method.value}
+              onChange={() => setSelectedPaymentMethod(method.value)}
+            />
+            <span>{method.label}</span>
+          </label>
+        ))}
       </section>
 
       <section className="checkout-summary">

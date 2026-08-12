@@ -1437,6 +1437,8 @@ button {
     display: none; /* hide on smaller screens where there's no room beside the image */
   }
 }
+
+/* ===================== PAYMENT VERIFICATION (OTP) ===================== */
 .payment-verification-box {
   background: white;
   border: 1px solid var(--border-gray);
@@ -1487,4 +1489,58 @@ button {
 .verification-resend-btn:disabled {
   color: #999;
   cursor: not-allowed;
+}
+
+/* ===================================================================
+   HERO SECTION - MOBILE RESPONSIVE
+   IMPORTANT: This block MUST stay at the very end of the file.
+   It overrides .hero-main / .hero-side / .promo-card rules defined
+   above, and CSS gives the LAST matching rule priority when
+   specificity is equal - so if this ever gets moved above those
+   base rules again, the override will silently stop working.
+   =================================================================== */
+@media (max-width: 900px) {
+  .hero-main {
+    padding: 28px 20px;
+  }
+  .hero-main h1 {
+    font-size: 26px;
+  }
+  .hero-main p {
+    font-size: 13px;
+    max-width: 100%;
+  }
+
+  .hero-side {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .promo-card {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 140px;
+    padding: 18px;
+  }
+  .promo-card h3 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-main {
+    padding: 22px 16px;
+  }
+  .hero-main h1 {
+    font-size: 22px;
+  }
+  .hero-badge {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .hero-side {
+    flex-direction: column;
+  }
+  .promo-card {
+    flex: 1 1 100%;
+  }
 }
